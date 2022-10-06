@@ -10,7 +10,7 @@ output:
 
 ```{r setup}
 
-#importing the required packages
+#importing the necessary packages
 library('caret')
 library('ISLR')
 library('dplyr')
@@ -20,23 +20,23 @@ library('class')
 rundata <- read.csv("~/Downloads/UniversalBank.csv", header = TRUE, 
                          sep =",", stringsAsFactors = FALSE)
 #Question_1
-#conducting a k-NN classification with all predictors removed, i.e., removing ID and ZIP Code from each and every column
+#performing a k-NN classification with all predictors deleted, deleting ID and ZIP Code from every single column
 rundata$ID <- NULL
 rundata$ZIP.Code <- NULL
 summary(rundata)
 
-#converting the categorical variable "personal loan" into a factor that classifies responses as "yes" or "no."
+#translating the categorical variable "personal loan" into a variable that distinguishes between "yes" and "no" responses.
 
 rundata$Personal.Loan=  as.factor(rundata$Personal.Loan)
 
 
-#separating the data into training and validation in order to standardize it, use preProcess() from the caret package.
+#Apply preProcess() from the caret package to divide the data into training and validation in order to standardize it.
 M_norm <- preProcess(rundata[, -8],method = c("center", "scale"))
 rundata_norm <- predict(M_norm,rundata)
 summary(rundata_norm)
 
 
-#Dividing the data into training and test sets
+#separating the data into test and training sets
 T_index <- createDataPartition(rundata$Personal.Loan, p = 0.6, list = FALSE)
 t.df = rundata_norm[T_index,]
 validate.df = rundata_norm[-T_index,]
@@ -62,7 +62,7 @@ print(predictions)
 ```
 ```{r}
 #Question_2 
-#determining the K value that balances overfitting and underfitting.
+#finding the K value that strikes a compromise between over- and underfitting.
 set.seed(123)
 UniBank <- trainControl(method= "repeatedcv", number = 3, repeats = 2)
 searchGrid = expand.grid(k=1:10)
@@ -72,31 +72,31 @@ knn.model = train(Personal.Loan~., data = t.df, method = 'knn', tuneGrid = searc
 knn.model
 ```
 ```{r}
-#The perfect value of k is 3, which strikes a compromise between underfitting and overfitting of the data.
+#The best value of k is 3, which finds a balance between underfitting and overfitting of the data.
 #Question 3
 #confusion Matrix is below
 pre_bank <- predict(knn.model,validate.df)
 
 confusionMatrix(pre_bank,validate.df$Personal.Loan)
-#The matrix has a 95.1% accuracy.
+#The matrix's accuracy rate is 95.1%.
 ```
 ```{r}
 #Question 4
 #Levels
-#using the best K to classify the consumer.
+#utilizing the highest K to categorize the customer.
 my.predict_Norm = data.frame(Age = 40, Experience = 10, Income = 84, Family = 2,
                                    CCAvg = 2, Education = 1, Mortgage = 0,
                                    Securities.Account =0, CD.Account = 0, Online = 1,
                                    CreditCard = 1)
 my.predict_Norm = predict(M_norm, my.predict)
 predict(knn.model, my.predict_Norm)
-#A plot that shows the best value of K (3), the one with the highest accuracy, is also present.
+#There is also a plot that displays the optimal K (3) value, which is the one with the greatest accuracy.
 plot(knn.model, type = "b", xlab = "K-Value", ylab = "Accuracy")
 ```
 
 ```{r}
 #Question 5
-#creating training, test, and validation sets from the data collection.
+#constructing training, test, and validation sets using the data that was collected.
 train_size = 0.5 #training(50%)
 T_index = createDataPartition(rundata$Personal.Loan, p = 0.5, list = FALSE)
 t.df = rundata_norm[T_index,]
