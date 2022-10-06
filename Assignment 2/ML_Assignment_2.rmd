@@ -3,9 +3,9 @@ title: "ASSIGNMENT_2_64060"
 author: "Rohith Desamseety"
 date: "2022-10-06"
 output:
-  word_document: default
-  html_document: default
   pdf_document: default
+  html_document: default
+  word_document: default
 ---
 
 ```{r setup}
