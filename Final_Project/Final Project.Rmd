@@ -1,0 +1,108 @@
+---
+title: "Final Project"
+author: "Rohith Desamseety"
+date: "2022-12-17"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Load Umpire Data and Install Packages}
+library(readr)
+Universal_RD <- read.csv("~/Downloads/mlb-umpire-scorecard.csv", header=TRUE, stringsAsFactors=FALSE)
+View(Universal_RD)
+#Downloaded from https://www.kaggle.com/datasets/mattop/mlb-baseball-umpire-scorecards-2015-2022
+
+library(dplyr)
+library(factoextra)
+library(flexclust)
+library(ggsignif)
+library(backports)
+library(rstatix)
+library(tinytex)
+```
+
+```{r Preview Data}
+summary(Universal_RD)
+```
+
+```{r Clean Up Data}
+Data <-  subset(Universal_RD, select = -c(1,2,4,5,6,7)) 
+#Remove irrelevant columns and convert all data to numbers.
+Data$pitches_called <- as.numeric(Data$pitches_called)
+Data$incorrect_calls <- as.numeric(Data$incorrect_calls)
+Data$expected_incorrect_calls <- as.numeric(Data$expected_incorrect_calls)
+Data$correct_calls <- as.numeric(Data$correct_calls)
+Data$expected_correct_calls <- as.numeric(Data$expected_correct_calls)
+Data$correct_calls_above_expected <- as.numeric(Data$correct_calls_above_expected)
+Data$accuracy <- as.numeric(Data$accuracy)
+Data$expected_accuracy <- as.numeric(Data$expected_accuracy)
+Data$accuracy_above_expected <- as.numeric(Data$accuracy_above_expected)
+Data$consistency <- as.numeric(Data$consistency)
+Data$favor_home <- as.numeric(Data$favor_home)
+Data$total_run_impact <- as.numeric(Data$total_run_impact)
+summary(Data)
+```
+  
+```{r Combine Data By Umpire and Take Averages of Stats}  
+nonaData <- na.omit(Data)
+newdf <- nonaData %>% group_by(umpire) %>% summarise_each(funs(mean))
+head(newdf)
+```
+
+```{r Extracting Relevant Statistics}
+metricsdf <- subset (newdf, select =-c(2,3,4,5,6,8,9))
+#Because the primary focus is on umpire performance that is above or below the acceptable/expected level, the key numbers are the correct calls and accuracy in comparison to those expectations, as well as overall accuracy, possible bias for home or away side, and influence on runs.. We don't need to view the individual entries because all other statistics are included into those essential indicators.
+head(metricsdf)
+```
+
+```{r Normalize the Data}
+rownames(metricsdf) <- metricsdf$umpire
+metricsdf$umpire <- NULL
+normdf <- scale(metricsdf)
+head(normdf)
+```
+```{r Distance}
+distance <- get_dist(normdf)
+fviz_dist(distance)
+```
+
+```{r Elbow Method for Number Cluster}
+fviz_nbclust(normdf, kmeans, method="wss")
+```
+#There appear to be elbows between 2 and 5 as reasonable cluster numbers.
+```{r Cluster Data silhouette}
+fviz_nbclust(normdf, kmeans, method="silhouette")
+```
+#The silhouette approach confirms that two clusters are the ideal number. This may be used to distinguish between umpires who are performing well and those who are underperforming. We could add more clusters if we wanted to include a few groups in the center.
+
+```{r Cluster K 2}
+k2 <- kmeans(normdf, centers = 2, nstart = 25)
+```
+
+```{r Visualize Clusters K 2}
+fviz_cluster(k2, data = normdf)
+```
+
+```{r Analyze k 2 Clusters Using Numerical Values with Centers}
+k2$centers
+```
+#Cluster 1 includes umpires with stronger performance metrics, whereas Cluster 2 includes umpires with performance concerns.
+
+#It appears that it is preferable to split the data down into further clusters in order to have a better notion of how to manage assignments for critical postseason games and summer training for the umpires.
+
+```{r Clusters with k 5}
+k5 <- kmeans(normdf, centers = 5, nstart = 25)
+```
+```{r Visualize Clusters K 5}
+fviz_cluster(k5, data = normdf)
+```
+
+```{r Analyze k 5 Clusters Using Numerical Values with Centers}
+k5$centers
+```
+```{r}
+#There are four big clusters and one cluster with an outlier (Cluster 5 consisted of solely Anthony Johnson) that was not assigned to another cluster, most likely due to his Favor Home measure being substantially higher than the others.According to the summary statistics, Cluster 4 is the top performing group, Cluster 1 is performing as predicted, Cluster 2 is performing below average, and Cluster 3 is the lowest performing group. Based on this information, Clusters 4 and 1 should be assigned to playoff games, primetime national games, and the World Series. Cluster 2 should be given some pointers on how to improve their performance, but they may not be making enough mistakes to warrant extreme action. Cluster 3 performs the worst and would benefit from prolonged offseason training and probable shadowing of Cluster 4.Outside of favor home, Cluster 5 is in the middle of most performance measures, therefore Anthony Johnson may be able to do well with some additional training that focuses on resisting being affected by home audiences.
+```
